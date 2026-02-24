@@ -47,6 +47,25 @@ npm install
 npm start
 ```
 
+### Ambiente de Produção
+
+Para rodar em produção de forma estável, recomenda-se o uso do **Docker Compose**, pois ele gerencia automaticamente a reinicialização e as dependências do sistema:
+
+```bash
+# Iniciar em modo background
+docker-compose up -d --build
+
+# Ver logs em tempo real
+docker-compose logs -f
+```
+
+Caso prefira rodar via Node.js sem Docker, utilize o **PM2** para manter o processo vivo:
+
+```bash
+npm install -g pm2
+pm2 start dist/index.js --name "chatbot-integrado"
+```
+
 ### Comandos Disponíveis
 
 - `/imagem <prompt>`: Gera uma imagem no Chat selecionado.
@@ -97,6 +116,25 @@ docker-compose up -d --build
 ```bash
 npm install
 npm start
+```
+
+### Production Environment
+
+For a stable production deployment, it is recommended to use **Docker Compose**, as it automatically manages restarts and system dependencies:
+
+```bash
+# Start in background mode
+docker-compose up -d --build
+
+# View real-time logs
+docker-compose logs -f
+```
+
+If you prefer to run via Node.js without Docker, use **PM2** to keep the process alive:
+
+```bash
+npm install -g pm2
+pm2 start dist/index.js --name "chatbot-integrado"
 ```
 
 ### Available Commands
