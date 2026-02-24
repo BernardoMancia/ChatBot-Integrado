@@ -1,0 +1,11 @@
+services:
+  bot:
+    build: .
+    container_name: chatbot-integrado
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./.wwebjs_cache:/app/.wwebjs_cache
+      - ./.telegraf_session:/app/.telegraf_session
