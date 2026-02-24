@@ -2,6 +2,7 @@ import { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
 import { ENV } from '../../config/env';
 import { processChat, generateImage } from '../../core/agent';
+import { clearHistory } from '../../core/memory';
 
 export const startTelegram = () => {
     if (!ENV.TELEGRAM_TOKEN) {
@@ -10,6 +11,11 @@ export const startTelegram = () => {
     }
 
     const bot = new Telegraf(ENV.TELEGRAM_TOKEN);
+
+    bot.command(['limpar', 'reset'], (ctx) => {
+        clearHistory(ctx.from.id.toString());
+        ctx.reply('Histórico de conversa limpo!');
+    });
 
     bot.command('imagem', async (ctx) => {
         const prompt = ctx.message.text.split(' ').slice(1).join(' ');
@@ -24,7 +30,7 @@ export const startTelegram = () => {
     bot.on(message('text'), async (ctx) => {
         const text = ctx.message.text;
         if (text.startsWith('/')) return;
-        const response = await processChat(text, 'Telegram');
+        const response = await processChat(text, 'Telegram', ctx.from.id.toString());
         await ctx.reply(response);
     });
 

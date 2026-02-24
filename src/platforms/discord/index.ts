@@ -1,6 +1,7 @@
 import { Client, GatewayIntentBits, Message } from 'discord.js';
 import { ENV } from '../../config/env';
 import { processChat, generateImage } from '../../core/agent';
+import { clearHistory } from '../../core/memory';
 
 export const discordClient = new Client({
     intents: [
@@ -20,6 +21,12 @@ discordClient.on('messageCreate', async (message: Message) => {
     const text = message.content.trim();
     if (!text) return;
 
+    if (text === '/limpar' || text === '/reset') {
+        clearHistory(message.author.id);
+        await message.reply('Histórico de conversa limpo!');
+        return;
+    }
+
     if (text.startsWith('/imagem ')) {
         const prompt = text.replace('/imagem ', '');
         const msg = await message.reply('Gerando imagem, aguarde...');
@@ -29,7 +36,7 @@ discordClient.on('messageCreate', async (message: Message) => {
     }
 
     if (message.mentions.has(discordClient.user!) || message.channel.isDMBased()) {
-        const reply = await processChat(text, 'Discord');
+        const reply = await processChat(text, 'Discord', message.author.id);
         await message.reply(reply);
     }
 });

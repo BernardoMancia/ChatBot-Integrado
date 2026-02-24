@@ -6,24 +6,36 @@ export const openai = new OpenAI({
     apiKey: ENV.OPENAI_API_KEY,
 });
 
-export async function processChat(prompt: string, platformContext: string): Promise<string> {
+import { loadHistory, saveHistory, Message as MemoryMessage } from './memory';
+
+export async function processChat(prompt: string, platformContext: string, userId: string): Promise<string> {
     if (!ENV.OPENAI_API_KEY) {
         return 'Chave de API da OpenAI não configurada.';
     }
 
+    const history = loadHistory(userId);
+    const messages: MemoryMessage[] = [
+        {
+            role: 'system',
+            content: `Você é um assistente virtual inteligente atendendo pelo ${platformContext}. Seu desenvolvedor é o dev com o codinome Luke. O link do repositório deste projeto no GitHub é: https://github.com/BernardoMancia/ChatBot-Integrado.git. Seja claro, direto e sem adicionar comentários além do solicitado.`
+        },
+        ...history,
+        { role: 'user', content: prompt }
+    ];
+
     try {
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
-            messages: [
-                {
-                    role: 'system',
-                    content: `Você é um assistente virtual inteligente atendendo pelo ${platformContext}. Seu desenvolvedor é o dev com o codinome Luke. Seja claro, direto e sem adicionar comentários além do solicitado.`
-                },
-                { role: 'user', content: prompt }
-            ]
+            messages: messages as any
         });
 
-        return response.choices[0]?.message?.content || 'Sem resposta do assistente.';
+        const reply = response.choices[0]?.message?.content || 'Sem resposta do assistente.';
+
+        history.push({ role: 'user', content: prompt });
+        history.push({ role: 'assistant', content: reply });
+        saveHistory(userId, history);
+
+        return reply;
     } catch (err) {
         console.error(`[OpenAI Error] Chat:`, err);
         return 'Ocorreu um erro ao falar com a IA.';

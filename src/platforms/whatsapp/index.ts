@@ -3,6 +3,7 @@ import qrcode from 'qrcode-terminal';
 import * as fs from 'fs';
 import * as path from 'path';
 import { processChat, generateImage, transcribeAudio } from '../../core/agent';
+import { clearHistory } from '../../core/memory';
 
 export const startWhatsApp = () => {
     const client = new Client({
@@ -23,6 +24,12 @@ export const startWhatsApp = () => {
 
     client.on('message', async (msg) => {
         const text = msg.body || '';
+
+        if (text === '/limpar' || text === '/reset') {
+            clearHistory(msg.from);
+            await msg.reply('Histórico de conversa limpo!');
+            return;
+        }
 
         if (text.startsWith('/imagem ')) {
             const prompt = text.replace('/imagem ', '');
@@ -47,7 +54,7 @@ export const startWhatsApp = () => {
                         return;
                     }
 
-                    const chatReply = await processChat(`Transcrevi o seguinte áudio do usuário: "${transcription}". Por favor, responda a ele de acordo.`, 'WhatsApp');
+                    const chatReply = await processChat(`Transcrevi o seguinte áudio do usuário: "${transcription}". Por favor, responda a ele de acordo.`, 'WhatsApp', msg.from);
 
                     await msg.reply(`*Transcrição:* ${transcription}\n\n*Resposta:* ${chatReply}`);
                 } catch (err) {
@@ -63,7 +70,7 @@ export const startWhatsApp = () => {
         }
 
         if (text && !text.startsWith('/')) {
-            const response = await processChat(text, 'WhatsApp');
+            const response = await processChat(text, 'WhatsApp', msg.from);
             await msg.reply(response);
         }
     });
