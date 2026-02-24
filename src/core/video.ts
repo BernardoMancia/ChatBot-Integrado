@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import youtubedl from 'youtube-dl-exec';
+import ytdl from '@distube/ytdl-core';
 
 const execFileAsync = promisify(execFile);
 const ffmpegBin: string = require('ffmpeg-static');
@@ -12,33 +12,37 @@ if (!fs.existsSync(VIDEO_DIR)) {
     fs.mkdirSync(VIDEO_DIR, { recursive: true });
 }
 
-export const VIDEO_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com)\/[^\s]+/i;
-
-function findDownloadedFile(baseName: string): string | null {
-    const files = fs.readdirSync(VIDEO_DIR);
-    const match = files.find(f => f.startsWith(baseName) && !f.endsWith('.mp3'));
-    return match ? path.join(VIDEO_DIR, match) : null;
-}
+// Foco em YouTube, pois ytdl-core é focado no YouTube
+export const VIDEO_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/[^\s]+/i;
 
 export async function downloadVideo(url: string): Promise<{ videoPath: string; audioPath: string }> {
     const baseName = `video_${Date.now()}`;
-    const outputTemplate = path.join(VIDEO_DIR, `${baseName}.%(ext)s`);
+    const videoPath = path.join(VIDEO_DIR, `${baseName}.mp4`);
     const audioPath = path.join(VIDEO_DIR, `${baseName}.mp3`);
 
-    await youtubedl(url, {
-        output: outputTemplate,
-        format: 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        mergeOutputFormat: 'mp4',
-    });
-
-    const videoPath = findDownloadedFile(baseName);
-    if (!videoPath || !fs.existsSync(videoPath)) {
-        throw new Error('Arquivo de vídeo não encontrado após download.');
+    if (!ytdl.validateURL(url)) {
+        throw new Error('URL de vídeo inválida.');
     }
 
-    await execFileAsync(ffmpegBin, ['-y', '-i', videoPath, '-vn', '-acodec', 'libmp3lame', '-q:a', '4', audioPath]);
+    return new Promise((resolve, reject) => {
+        const stream = ytdl(url, { quality: 'lowestvideo', filter: 'audioandvideo' });
+        const writeStream = fs.createWriteStream(videoPath);
 
-    return { videoPath, audioPath };
+        stream.pipe(writeStream);
+
+        stream.on('error', (err) => {
+            reject(new Error(`Erro baixar stream: ${err.message}`));
+        });
+
+        writeStream.on('finish', async () => {
+            try {
+                await extractAudio(videoPath, audioPath);
+                resolve({ videoPath, audioPath });
+            } catch (err: any) {
+                reject(new Error(`Erro ao extrair áudio: ${err.message}`));
+            }
+        });
+    });
 }
 
 export async function extractAudio(inputPath: string, outputMp3Path: string): Promise<void> {
