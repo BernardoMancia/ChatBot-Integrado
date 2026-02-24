@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { processChat, generateImage, transcribeAudio } from '../../core/agent';
 import { clearHistory } from '../../core/memory';
+import { VIDEO_REGEX, downloadVideo, cleanupVideoFiles } from '../../core/video';
+import { MessageMedia } from 'whatsapp-web.js';
 
 export const startWhatsApp = () => {
     const client = new Client({
@@ -36,6 +38,26 @@ export const startWhatsApp = () => {
             await msg.reply('Gerando imagem...');
             const url = await generateImage(prompt);
             await msg.reply(url);
+            return;
+        }
+
+        if (VIDEO_REGEX.test(text)) {
+            const link = text.match(VIDEO_REGEX)![0];
+            await msg.reply('Vídeo detectado! Processando download e transcrição...');
+
+            try {
+                const { videoPath, audioPath } = await downloadVideo(link);
+                const transcription = await transcribeAudio(audioPath);
+
+                const media = MessageMedia.fromFilePath(videoPath);
+                await client.sendMessage(msg.from, media, {
+                    caption: transcription ? `*Transcrição:* ${transcription}` : undefined
+                });
+
+                cleanupVideoFiles(videoPath, audioPath);
+            } catch (error) {
+                await msg.reply('Erro ao processar o vídeo.');
+            }
             return;
         }
 

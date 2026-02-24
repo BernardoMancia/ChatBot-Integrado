@@ -6,7 +6,7 @@
 
 ## Português
 
-Este é um chatbot omnicanal que integra **Discord**, **Telegram** e **WhatsApp** em uma única aplicação Node.js, utilizando o poder da **OpenAI** para fornecer respostas inteligentes, geração de imagens, transcrição de áudio e muito mais.
+Este é um chatbot omnicanal que integra **Discord**, **Telegram** e **WhatsApp** em uma única aplicação Node.js, utilizando o poder da **OpenAI** para fornecer respostas inteligentes, geração de imagens, transcrição de áudio, download de vídeos e muito mais.
 
 ### Funcionalidades
 
@@ -15,6 +15,7 @@ Este é um chatbot omnicanal que integra **Discord**, **Telegram** e **WhatsApp*
 - **Multimídia**:
   - Geração de imagens via DALL-E 3 (`/imagem prompt`).
   - Transcrição automática de áudios recebidos via Whisper.
+  - **Download de Vídeos**: Detecta links do YouTube, TikTok e Instagram, baixa o vídeo e transcreve o conteúdo automaticamente.
 - **Docker Ready**: Fácil de rodar em qualquer ambiente via Docker.
 - **Health Check**: Servidor HTTP integrado para monitoramento de status da plataforma.
 
@@ -22,6 +23,9 @@ Este é um chatbot omnicanal que integra **Discord**, **Telegram** e **WhatsApp*
 
 - Node.js 20+ (para rodar localmente)
 - Docker e Docker Compose (para rodar em container)
+- Ferramentas de Sistema (se rodar localmente sem Docker):
+  - `yt-dlp` (para download de vídeos)
+  - `ffmpeg` (para extração de áudio)
 - Contas e Tokens:
   - OpenAI API Key
   - Discord Bot Token e Client ID
@@ -63,17 +67,11 @@ docker-compose up -d --build
 docker-compose logs -f
 ```
 
-Caso prefira rodar via Node.js sem Docker, utilize o **PM2** para manter o processo vivo:
-
-```bash
-npm install -g pm2
-pm2 start dist/index.js --name "chatbot-integrado"
-```
-
 ### Comandos Disponíveis
 
 - `/imagem <prompt>`: Gera uma imagem no Chat selecionado.
 - Envie um áudio: O bot transcreve o conteúdo automaticamente.
+- **Links de Vídeo**: Envie um link do YT, TikTok ou Instagram para baixar e transcrever.
 - Marque o bot no Discord ou Telegram: Inicie uma conversa via IA.
 - Envie mensagem direta no WhatsApp: O bot responde como assistente.
 - `/limpar` ou `/reset`: Limpa o histórico de memória do chat do usuário.
@@ -82,7 +80,7 @@ pm2 start dist/index.js --name "chatbot-integrado"
 
 ## English
 
-This is an omnichannel chatbot that integrates **Discord**, **Telegram**, and **WhatsApp** into a single Node.js application, leveraging the power of **OpenAI** to provide intelligent responses, image generation, audio transcription, and more.
+This is an omnichannel chatbot that integrates **Discord**, **Telegram**, and **WhatsApp** into a single Node.js application, leveraging the power of **OpenAI** to provide intelligent responses, image generation, audio transcription, video downloads, and more.
 
 ### Features
 
@@ -91,6 +89,7 @@ This is an omnichannel chatbot that integrates **Discord**, **Telegram**, and **
 - **Multimedia**:
   - Image generation via DALL-E 3 (`/imagem prompt`).
   - Automatic transcription of received audio via Whisper.
+  - **Video Download**: Detects YouTube, TikTok, and Instagram links, downloads the video, and transcribes the content automatically.
 - **Docker Ready**: Easy to run in any environment via Docker.
 - **Health Check**: Integrated HTTP server for platform status monitoring.
 
@@ -98,6 +97,9 @@ This is an omnichannel chatbot that integrates **Discord**, **Telegram**, and **
 
 - Node.js 20+ (to run locally)
 - Docker and Docker Compose (to run in a container)
+- System Tools (if running locally without Docker):
+  - `yt-dlp` (for video downloads)
+  - `ffmpeg` (for audio extraction)
 - Accounts and Tokens:
   - OpenAI API Key
   - Discord Bot Token and Client ID
@@ -118,8 +120,6 @@ This is an omnichannel chatbot that integrates **Discord**, **Telegram**, and **
 docker-compose up -d --build
 ```
 
-In Docker, the application maps the internal port defined in `.env`. Remember to adjust the `ports` field in `docker-compose.yml` if you change the default port.
-
 #### Via Node.js (Local)
 
 ```bash
@@ -139,17 +139,11 @@ docker-compose up -d --build
 docker-compose logs -f
 ```
 
-If you prefer to run via Node.js without Docker, use **PM2** to keep the process alive:
-
-```bash
-npm install -g pm2
-pm2 start dist/index.js --name "chatbot-integrado"
-```
-
 ### Available Commands
 
 - `/imagem <prompt>`: Generates an image in the selected chat.
 - Send an audio message: The bot transcribes the content automatically.
+- **Video Links**: Send a YT, TikTok, or Instagram link to download and transcribe.
 - Mention the bot on Discord or Telegram: Start an AI-powered conversation.
 - Send a direct message on WhatsApp: The bot responds as an assistant.
 - `/limpar` or `/reset`: Clears the user's chat memory history.
