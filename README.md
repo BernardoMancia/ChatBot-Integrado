@@ -16,6 +16,7 @@ Este é um chatbot omnicanal que integra **Discord**, **Telegram** e **WhatsApp*
   - Geração de imagens via DALL-E 3 (`/imagem prompt`).
   - Transcrição automática de áudios recebidos via Whisper.
 - **Docker Ready**: Fácil de rodar em qualquer ambiente via Docker.
+- **Health Check**: Servidor HTTP integrado para monitoramento de status da plataforma.
 
 ### Pré-requisitos
 
@@ -31,6 +32,7 @@ Este é um chatbot omnicanal que integra **Discord**, **Telegram** e **WhatsApp*
 1. Clone o repositório.
 2. Crie um arquivo `.env` na raiz baseado no `.env.example`.
 3. Preencha as chaves de API necessárias.
+4. **Porta**: Por padrão a aplicação usa a porta `3000`. Você pode alterar definindo `PORT=sua_porta` no seu arquivo `.env`.
 
 ### Como Executar
 
@@ -39,6 +41,8 @@ Este é um chatbot omnicanal que integra **Discord**, **Telegram** e **WhatsApp*
 ```bash
 docker-compose up -d --build
 ```
+
+No Docker, a aplicação mapeia a porta interna definida no `.env`. Lembre-se de ajustar o campo `ports` no `docker-compose.yml` se mudar a porta padrão.
 
 #### Via Node.js (Local)
 
@@ -72,6 +76,7 @@ pm2 start dist/index.js --name "chatbot-integrado"
 - Envie um áudio: O bot transcreve o conteúdo automaticamente.
 - Marque o bot no Discord ou Telegram: Inicie uma conversa via IA.
 - Envie mensagem direta no WhatsApp: O bot responde como assistente.
+- `/limpar` ou `/reset`: Limpa o histórico de memória do chat do usuário.
 
 ---
 
@@ -87,6 +92,7 @@ This is an omnichannel chatbot that integrates **Discord**, **Telegram**, and **
   - Image generation via DALL-E 3 (`/imagem prompt`).
   - Automatic transcription of received audio via Whisper.
 - **Docker Ready**: Easy to run in any environment via Docker.
+- **Health Check**: Integrated HTTP server for platform status monitoring.
 
 ### Prerequisites
 
@@ -102,6 +108,7 @@ This is an omnichannel chatbot that integrates **Discord**, **Telegram**, and **
 1. Clone the repository.
 2. Create a `.env` file in the root directory based on `.env.example`.
 3. Fill in the necessary API keys.
+4. **Port**: By default, the application uses port `3000`. You can change it by setting `PORT=your_port` in your `.env` file.
 
 ### How to Run
 
@@ -110,6 +117,8 @@ This is an omnichannel chatbot that integrates **Discord**, **Telegram**, and **
 ```bash
 docker-compose up -d --build
 ```
+
+In Docker, the application maps the internal port defined in `.env`. Remember to adjust the `ports` field in `docker-compose.yml` if you change the default port.
 
 #### Via Node.js (Local)
 
@@ -143,3 +152,4 @@ pm2 start dist/index.js --name "chatbot-integrado"
 - Send an audio message: The bot transcribes the content automatically.
 - Mention the bot on Discord or Telegram: Start an AI-powered conversation.
 - Send a direct message on WhatsApp: The bot responds as an assistant.
+- `/limpar` or `/reset`: Clears the user's chat memory history.
