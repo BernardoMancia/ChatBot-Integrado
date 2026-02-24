@@ -1,9 +1,11 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import youtubedl from 'youtube-dl-exec';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+const ffmpegBin: string = require('ffmpeg-static');
 
 const VIDEO_DIR = path.join(process.cwd(), 'data', 'videos');
 if (!fs.existsSync(VIDEO_DIR)) {
@@ -12,21 +14,35 @@ if (!fs.existsSync(VIDEO_DIR)) {
 
 export const VIDEO_REGEX = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be|tiktok\.com|instagram\.com)\/[^\s]+/i;
 
+function findDownloadedFile(baseName: string): string | null {
+    const files = fs.readdirSync(VIDEO_DIR);
+    const match = files.find(f => f.startsWith(baseName) && !f.endsWith('.mp3'));
+    return match ? path.join(VIDEO_DIR, match) : null;
+}
+
 export async function downloadVideo(url: string): Promise<{ videoPath: string; audioPath: string }> {
-    const filename = `video_${Date.now()}`;
-    const videoPath = path.join(VIDEO_DIR, `${filename}.mp4`);
-    const audioPath = path.join(VIDEO_DIR, `${filename}.mp3`);
+    const baseName = `video_${Date.now()}`;
+    const outputTemplate = path.join(VIDEO_DIR, `${baseName}.%(ext)s`);
+    const audioPath = path.join(VIDEO_DIR, `${baseName}.mp3`);
 
-    try {
-        await execAsync(`yt-dlp -o "${videoPath}" -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" "${url}"`);
+    await youtubedl(url, {
+        output: outputTemplate,
+        format: 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+        mergeOutputFormat: 'mp4',
+    });
 
-        await execAsync(`ffmpeg -i "${videoPath}" -vn -acodec libmp3lame "${audioPath}"`);
-
-        return { videoPath, audioPath };
-    } catch (error) {
-        console.error('[Video Download Error]', error);
-        throw new Error('Falha ao baixar vídeo.');
+    const videoPath = findDownloadedFile(baseName);
+    if (!videoPath || !fs.existsSync(videoPath)) {
+        throw new Error('Arquivo de vídeo não encontrado após download.');
     }
+
+    await execFileAsync(ffmpegBin, ['-y', '-i', videoPath, '-vn', '-acodec', 'libmp3lame', '-q:a', '4', audioPath]);
+
+    return { videoPath, audioPath };
+}
+
+export async function extractAudio(inputPath: string, outputMp3Path: string): Promise<void> {
+    await execFileAsync(ffmpegBin, ['-y', '-i', inputPath, '-vn', '-acodec', 'libmp3lame', '-q:a', '4', outputMp3Path]);
 }
 
 export function cleanupVideoFiles(...files: string[]) {

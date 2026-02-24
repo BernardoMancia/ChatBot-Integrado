@@ -14,8 +14,8 @@ export const startTelegram = () => {
     const bot = new Telegraf(ENV.TELEGRAM_TOKEN);
 
     bot.command(['limpar', 'reset'], (ctx) => {
-        clearHistory(ctx.from.id.toString());
-        ctx.reply('Histórico de conversa limpo!');
+        clearHistory(ctx.chat.id.toString());
+        ctx.reply('Histórico de conversa limpo para este chat!');
     });
 
     bot.command('imagem', async (ctx) => {
@@ -28,9 +28,35 @@ export const startTelegram = () => {
         await ctx.reply(url);
     });
 
+    bot.on(message('photo'), async (ctx) => {
+        const statusMsg = await ctx.reply('Imagem recebida! Deixa eu dar uma olhada...');
+        const chatId = ctx.chat.id.toString();
+        const userName = ctx.from.first_name || 'Usuário';
+        const text = ctx.message.caption || 'Analise esta imagem.';
+
+        try {
+            const fileId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+            const fileUrl = await ctx.telegram.getFileLink(fileId);
+
+            const response = await fetch(fileUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            const base64Image = Buffer.from(arrayBuffer).toString('base64');
+
+            const aiReply = await processChat(text, 'Telegram', chatId, userName, base64Image);
+            await ctx.reply(aiReply);
+            await ctx.telegram.deleteMessage(ctx.chat.id, statusMsg.message_id);
+        } catch (error) {
+            console.error('[Telegram Photo Error]', error);
+            await ctx.telegram.editMessageText(ctx.chat.id, statusMsg.message_id, undefined, 'Desculpe, não consegui analisar a imagem.');
+        }
+    });
+
     bot.on(message('text'), async (ctx) => {
         const text = ctx.message.text;
         if (text.startsWith('/')) return;
+
+        const chatId = ctx.chat.id.toString();
+        const userName = ctx.from.first_name || 'Usuário';
 
         if (VIDEO_REGEX.test(text)) {
             const link = text.match(VIDEO_REGEX)![0];
@@ -52,7 +78,7 @@ export const startTelegram = () => {
             return;
         }
 
-        const response = await processChat(text, 'Telegram', ctx.from.id.toString());
+        const response = await processChat(text, 'Telegram', chatId, userName);
         await ctx.reply(response);
     });
 

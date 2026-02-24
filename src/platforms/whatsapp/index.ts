@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { processChat, generateImage, transcribeAudio } from '../../core/agent';
 import { clearHistory } from '../../core/memory';
-import { VIDEO_REGEX, downloadVideo, cleanupVideoFiles } from '../../core/video';
+import { VIDEO_REGEX, downloadVideo, cleanupVideoFiles, extractAudio } from '../../core/video';
 import { MessageMedia } from 'whatsapp-web.js';
 
 export const startWhatsApp = () => {
@@ -26,10 +26,12 @@ export const startWhatsApp = () => {
 
     client.on('message', async (msg) => {
         const text = msg.body || '';
+        const contact = await msg.getContact();
+        const userName = contact.pushname || contact.name || 'Usuário';
 
         if (text === '/limpar' || text === '/reset') {
             clearHistory(msg.from);
-            await msg.reply('Histórico de conversa limpo!');
+            await msg.reply('Histórico de conversa limpo neste chat!');
             return;
         }
 
@@ -44,18 +46,16 @@ export const startWhatsApp = () => {
         if (VIDEO_REGEX.test(text)) {
             const link = text.match(VIDEO_REGEX)![0];
             await msg.reply('Vídeo detectado! Processando download e transcrição...');
-
             try {
                 const { videoPath, audioPath } = await downloadVideo(link);
                 const transcription = await transcribeAudio(audioPath);
-
                 const media = MessageMedia.fromFilePath(videoPath);
                 await client.sendMessage(msg.from, media, {
                     caption: transcription ? `*Transcrição:* ${transcription}` : undefined
                 });
-
                 cleanupVideoFiles(videoPath, audioPath);
             } catch (error) {
+                console.error('[WhatsApp Video Error]', error);
                 await msg.reply('Erro ao processar o vídeo.');
             }
             return;
@@ -63,36 +63,62 @@ export const startWhatsApp = () => {
 
         if (msg.hasMedia) {
             const media = await msg.downloadMedia();
-            if (media && media.mimetype.includes('audio')) {
-                await msg.reply('Processando áudio...');
-                const tempFile = path.join(__dirname, `temp_audio_${Date.now()}.ogg`);
+            if (!media) return;
+
+            if (media.mimetype.includes('image')) {
+                await msg.reply('Imagem recebida! Deixa eu analisar...');
+                try {
+                    const textContent = text || 'Descreva esta imagem para mim.';
+                    const response = await processChat(textContent, 'WhatsApp', msg.from, userName, media.data);
+                    await msg.reply(response);
+                } catch (err) {
+                    console.error('[WhatsApp Image Error]', err);
+                    await msg.reply('Ocorreu um erro ao processar a imagem.');
+                }
+                return;
+            }
+
+            if (media.mimetype.includes('audio') || media.mimetype.includes('video')) {
+                await msg.reply('Processando áudio/vídeo...');
+                const dataDir = path.join(process.cwd(), 'data', 'media');
+                if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+                const ext = media.mimetype.includes('video') ? 'mp4' : 'ogg';
+                const tempFile = path.join(dataDir, `wa_media_${Date.now()}.${ext}`);
+                let audioToTranscribe = tempFile;
 
                 try {
                     fs.writeFileSync(tempFile, media.data, { encoding: 'base64' });
-                    const transcription = await transcribeAudio(tempFile);
+
+                    if (ext === 'mp4') {
+                        audioToTranscribe = tempFile.replace('.mp4', '.mp3');
+                        await extractAudio(tempFile, audioToTranscribe);
+                    }
+
+                    const transcription = await transcribeAudio(audioToTranscribe);
 
                     if (!transcription) {
                         await msg.reply('Não consegui entender o áudio.');
                         return;
                     }
 
-                    const chatReply = await processChat(`Transcrevi o seguinte áudio do usuário: "${transcription}". Por favor, responda a ele de acordo.`, 'WhatsApp', msg.from);
+                    const chatReply = await processChat(
+                        `Ouvi/Vi o seguinte do usuário: "${transcription}". Por favor, responda a ele de acordo.`,
+                        'WhatsApp', msg.from, userName
+                    );
 
                     await msg.reply(`*Transcrição:* ${transcription}\n\n*Resposta:* ${chatReply}`);
                 } catch (err) {
-                    console.error('[WhatsApp Audio Error]', err);
-                    await msg.reply('Ocorreu um erro ao processar o áudio.');
+                    console.error('[WhatsApp Media Error]', err);
+                    await msg.reply('Ocorreu um erro ao processar a mídia.');
                 } finally {
-                    if (fs.existsSync(tempFile)) {
-                        fs.unlinkSync(tempFile);
-                    }
+                    cleanupVideoFiles(tempFile, ext === 'mp4' ? audioToTranscribe : '');
                 }
                 return;
             }
         }
 
         if (text && !text.startsWith('/')) {
-            const response = await processChat(text, 'WhatsApp', msg.from);
+            const response = await processChat(text, 'WhatsApp', msg.from, userName);
             await msg.reply(response);
         }
     });

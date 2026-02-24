@@ -8,19 +8,31 @@ export const openai = new OpenAI({
 
 import { loadHistory, saveHistory, Message as MemoryMessage } from './memory';
 
-export async function processChat(prompt: string, platformContext: string, userId: string): Promise<string> {
+export async function processChat(prompt: string, platformContext: string, userId: string, userName?: string, base64Image?: string): Promise<string> {
     if (!ENV.OPENAI_API_KEY) {
         return 'Chave de API da OpenAI não configurada.';
     }
 
     const history = loadHistory(userId);
+    const contextPrompt = userName ? `[Mensagem de: ${userName}] ${prompt}` : prompt;
+
+    let userContent: any = contextPrompt;
+
+    if (base64Image) {
+        userContent = [
+            { type: 'text', text: contextPrompt },
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } }
+        ];
+    }
+
     const messages: MemoryMessage[] = [
         {
             role: 'system',
-            content: `Você é um assistente virtual inteligente atendendo pelo ${platformContext}. Seu desenvolvedor é o dev com o codinome Luke. O link do repositório deste projeto no GitHub é: https://github.com/BernardoMancia/ChatBot-Integrado.git. Seja claro, direto e sem adicionar comentários além do solicitado.`
+            content: `Você é um assistente virtual inteligente atendendo pelo ${platformContext}. Seu desenvolvedor é o dev com o codinome Luke. O link do repositório deste projeto no GitHub é: https://github.com/BernardoMancia/ChatBot-Integrado.git. 
+            Diretriz importante de comportamento: Em alguns momentos as mensagens dos usuários chegarão com o prefixo "[Mensagem de: Nome]". Use isso apenas para *saber* internamente quem está falando com você na conversa (especialmente útil em grupos). Responda naturalmente. Não inicie todas as frases cumprimentando a pessoa pelo nome, apenas use o nome caso o contexto da conversa exija. Capacidade de Visão: Se o usuário enviar uma imagem, você a receberá acoplada à mensagem e deve analisá-la conforme solicitado.`
         },
         ...history,
-        { role: 'user', content: prompt }
+        { role: 'user', content: userContent }
     ];
 
     try {
