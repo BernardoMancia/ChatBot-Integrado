@@ -17,7 +17,7 @@ export async function processChat(prompt: string, platformContext: string): Prom
             messages: [
                 {
                     role: 'system',
-                    content: `Você é um assistente virtual inteligente atendendo pelo ${platformContext}. Seja claro, direto e sem adicionar comentários além do solicitado.`
+                    content: `Você é um assistente virtual inteligente atendendo pelo ${platformContext}. Seu desenvolvedor é o dev com o codinome Luke. Seja claro, direto e sem adicionar comentários além do solicitado.`
                 },
                 { role: 'user', content: prompt }
             ]
